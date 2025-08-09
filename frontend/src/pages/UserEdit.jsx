@@ -32,7 +32,6 @@
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-        // Exclude email and phoneNumber from the update payload
         const { firstName, middleName, lastName, address } = formData;
         await updateUser(id, { firstName, middleName, lastName, address });
         navigate('/users');

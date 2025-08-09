@@ -9,23 +9,39 @@
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [users, setUsers] = useState([]);
     const [selectedUserId, setSelectedUserId] = useState('');
+    const [error, setError] = useState('');
 
     useEffect(() => {
         const fetchUsers = async () => {
         try {
             const response = await getAllUsers();
+            console.log('Fetched users:', response.data);
             setUsers(response.data);
+            setError('');
         } catch (err) {
             console.error('Failed to fetch users:', err);
+            setError(err.response?.data?.error || 'Failed to load users for dropdown');
         }
         };
         if (token) fetchUsers();
     }, [token]);
 
     const handleEditUser = () => {
+        console.log('handleEditUser triggered, selectedUserId:', selectedUserId);
         if (selectedUserId) {
-        navigate(`/users/edit/${selectedUserId}`);
+        console.log('Navigating to:', `/users/edit/${selectedUserId}`);
+        navigate(`/users/edit/${selectedUserId}`, { replace: false });
+        } else {
+        console.error('No user selected for edit');
+        setError('Please select a user to edit');
         }
+    };
+
+    const handleUserSelect = (e) => {
+        const userId = e.target.value;
+        console.log('Selected user ID:', userId);
+        setSelectedUserId(userId);
+        setError('');
     };
 
     const handleLogout = () => {
@@ -41,6 +57,11 @@
             <span className="navbar-toggler-icon"></span>
             </button>
             <div className="collapse navbar-collapse" id="navbarNav">
+            {error && (
+                <div className="alert alert-danger ms-3" style={{ maxWidth: '300px' }}>
+                {error}
+                </div>
+            )}
             <ul className="navbar-nav">
                 {token && (
                 <>
@@ -50,40 +71,33 @@
                     <li className="nav-item">
                     <Link className="nav-link" to="/users/create">Create User</Link>
                     </li>
-                    <li className="nav-item dropdown">
-                    <a
-                        className="nav-link dropdown-toggle"
-                        href="#"
-                        id="editUserDropdown"
-                        role="button"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                    >
-                        Edit User
-                    </a>
-                    <ul className="dropdown-menu" aria-labelledby="editUserDropdown">
-                        <li>
+                    <li className="nav-item">
+                    <div className="d-flex align-items-center">
                         <select
-                            className="form-select m-2"
-                            value={selectedUserId}
-                            onChange={(e) => setSelectedUserId(e.target.value)}
+                        className="form-select me-2"
+                        style={{ width: '200px' }}
+                        value={selectedUserId}
+                        onChange={handleUserSelect}
                         >
-                            <option value="">Select a user</option>
-                            {users.map(user => (
+                        <option value="">Select a user to edit</option>
+                        {users.length > 0 ? (
+                            users.map(user => (
                             <option key={user._id} value={user._id}>
                                 {user.email} ({user.firstName} {user.lastName})
                             </option>
-                            ))}
+                            ))
+                        ) : (
+                            <option value="" disabled>No users available</option>
+                        )}
                         </select>
                         <button
-                            className="btn btn-primary m-2"
-                            onClick={handleEditUser}
-                            disabled={!selectedUserId}
+                        className="btn btn-primary"
+                        onClick={handleEditUser}
+                        disabled={!selectedUserId}
                         >
-                            Go to Edit
+                        Edit User
                         </button>
-                        </li>
-                    </ul>
+                    </div>
                     </li>
                     <li className="nav-item">
                     <button
