@@ -1,5 +1,7 @@
     const User = require('../models/User');
+    const Role = require('../models/Role');
     const bcrypt = require('bcryptjs');
+    const jwt = require('jsonwebtoken');
 
     const createUser = async (req, res) => {
     try {
@@ -31,7 +33,7 @@
     const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { firstName, middleName, lastName, address } = req.body; // Exclude email, phoneNumber
+        const { firstName, middleName, lastName, address } = req.body;
         if (!id.match(/^[0-9a-fA-F]{24}$/)) {
         return res.status(400).json({ error: 'Invalid user ID' });
         }
@@ -96,4 +98,55 @@
     }
     };
 
-    module.exports = { createUser, updateUser, deleteUser, getUser, getAllUsers };
+    const assignRole = async (req, res) => {
+    try {
+        const { userId, role } = req.body;
+        console.log('Received assignRole request:', { userId, role });
+        if (!userId || !role) {
+        return res.status(400).json({ error: 'User ID and role are required' });
+        }
+        const user = await User.findById(userId);
+        if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+        }
+        const foundRole = await Role.findOne({ name: role });
+        if (!foundRole) {
+        console.log('Role not found for name:', role);
+        return res.status(404).json({ error: 'Role not found' });
+        }
+        user.roles = [foundRole._id];
+        await user.save();
+        res.status(200).json({ message: 'Role assigned successfully', user });
+    } catch (error) {
+        console.error('AssignRole error:', error);
+        res.status(400).json({ error: error.message });
+    }
+    };
+
+    const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+        }
+        const user = await User.findOne({ email }).populate('roles');
+        if (!user) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+        }
+        const token = jwt.sign(
+        { userId: user._id, roles: user.roles.map(role => role.name) },
+        process.env.JWT_SECRET || 'your_jwt_secret',
+        { expiresIn: '1h' }
+        );
+        res.status(200).json({ token, user: { id: user._id, email: user.email, roles: user.roles } });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+    };
+
+    module.exports = { createUser, updateUser, deleteUser, getUser, getAllUsers, assignRole, login };

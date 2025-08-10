@@ -1,64 +1,62 @@
     const Role = require('../models/Role');
     const Permission = require('../models/Permission');
-    const User = require('../models/User');
 
-    exports.createRole = async (req, res) => {
+    const getRoles = async (req, res) => {
     try {
-        const { name, permissionIds } = req.body;
-        const role = new Role({ name, permissions: permissionIds });
+        const roles = await Role.find();
+        res.status(200).json(roles);
+    } catch (error) {
+        console.error('Error fetching roles:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+    };
+
+    const createRole = async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name) {
+        return res.status(400).json({ error: 'Role name is required' });
+        }
+        const existingRole = await Role.findOne({ name });
+        if (existingRole) {
+        return res.status(400).json({ error: 'Role already exists' });
+        }
+        const role = new Role({ name });
         await role.save();
         res.status(201).json({ message: 'Role created successfully', role });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Error creating role:', error);
+        res.status(500).json({ error: 'Server error' });
     }
     };
 
-    exports.assignRole = async (req, res) => {
+    const createPermission = async (req, res) => {
     try {
-        const { userId, roleId } = req.body;
-        const user = await User.findById(userId);
-        if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        const { name } = req.body;
+        if (!name) {
+        return res.status(400).json({ error: 'Permission name is required' });
         }
-        const role = await Role.findById(roleId);
-        if (!role) {
-        return res.status(404).json({ error: 'Role not found' });
+        const existingPermission = await Permission.findOne({ name });
+        if (existingPermission) {
+        return res.status(400).json({ error: 'Permission already exists' });
         }
-        if (!user.roles.includes(roleId)) {
-        user.roles.push(roleId);
-        await user.save();
-        }
-        res.json({ message: 'Role assigned successfully' });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-    };
-
-    exports.getRoles = async (req, res) => {
-    try {
-        const roles = await Role.find().populate('permissions');
-        res.json(roles);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-    };
-
-    exports.createPermission = async (req, res) => {
-    try {
-        const { name, description } = req.body;
-        const permission = new Permission({ name, description });
+        const permission = new Permission({ name });
         await permission.save();
         res.status(201).json({ message: 'Permission created successfully', permission });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Error creating permission:', error);
+        res.status(500).json({ error: 'Server error' });
     }
     };
 
-    exports.getPermissions = async (req, res) => {
+    const getPermissions = async (req, res) => {
     try {
         const permissions = await Permission.find();
-        res.json(permissions);
+        res.status(200).json(permissions);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Error fetching permissions:', error);
+        res.status(500).json({ error: 'Server error' });
     }
     };
+
+    module.exports = { getRoles, createRole, createPermission, getPermissions };
