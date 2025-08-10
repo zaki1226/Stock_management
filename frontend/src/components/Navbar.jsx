@@ -2,7 +2,7 @@
     import { Link } from 'react-router-dom';
     import UserDeleteModal from './UserDeleteModal.jsx';
     import UserEditModal from './UserEditModal.jsx';
-    import stock from '../assets/stock.png'; 
+    import stock from '../assets/stoc.png'; 
 
     const Navbar = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
