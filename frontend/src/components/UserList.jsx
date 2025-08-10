@@ -25,6 +25,7 @@
             <thead>
             <tr>
                 <th>First Name</th>
+                <th>Middle Name</th>
                 <th>Last Name</th>
                 <th>Email</th>
                 <th>Phone Number</th>
@@ -35,6 +36,7 @@
             {users.map(user => (
                 <tr key={user._id}>
                 <td>{user.firstName}</td>
+                <td>{user.middleName || 'N/A'}</td>
                 <td>{user.lastName}</td>
                 <td>{user.email}</td>
                 <td>{user.phoneNumber}</td>

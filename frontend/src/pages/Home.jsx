@@ -1,6 +1,7 @@
     import React, { useState } from 'react';
     import { useNavigate } from 'react-router-dom';
     import { login } from '../utils/api';
+    import logo from '../assets/perfonet.png'; // Adjust the path as necessary
 
     const Home = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
@@ -26,7 +27,18 @@
         <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
         <div className="card p-4 shadow" style={{ width: '100%', maxWidth: '400px' }}>
             <h2 className="text-center mb-4">Stock Management Login</h2>
+            
+            {/* Logo Image */}
+            <div className="text-center mb-4">
+            <img 
+                src={logo} 
+                alt="Stock Management Logo" 
+                style={{ width: '80px', height: '80px', objectFit: 'contain' }} 
+            />
+            </div>
+
             {error && <div className="alert alert-danger">{error}</div>}
+            
             <form onSubmit={handleSubmit}>
             <div className="mb-3">
                 <label className="form-label">Email</label>
