@@ -1,113 +1,122 @@
-    import React, { useState, useEffect } from 'react';
-    import { getAllUsers, getRoles, assignRole } from '../utils/api';
+    import React, { useEffect, useState } from 'react';
+    import { getRoles, getUser, assignRole, removeRole } from '../utils/api';
 
-    const RoleManagement = () => {
-    const [users, setUsers] = useState([]);
+    const RoleManagement = ({ show, userId, onClose }) => {
     const [roles, setRoles] = useState([]);
-    const [selectedUserId, setSelectedUserId] = useState('');
+    const [userRoles, setUserRoles] = useState([]);
     const [selectedRole, setSelectedRole] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        if (show && userId) {
         const fetchData = async () => {
-        try {
+            try {
             setLoading(true);
-            const [usersResponse, rolesResponse] = await Promise.all([
-            getAllUsers(),
-            getRoles(),
+            const [rolesResponse, userResponse] = await Promise.all([
+                getRoles(),
+                getUser(userId),
             ]);
-            console.log('Fetched users:', usersResponse.data);
-            console.log('Fetched roles:', rolesResponse.data);
-            setUsers(usersResponse.data);
             setRoles(rolesResponse.data);
+            const user = userResponse.data;
+            setUserRoles(Array.isArray(user.roles) ? user.roles.map(role => role.name?.toLowerCase() || '') : []);
             setError('');
-        } catch (err) {
-            console.error('Failed to fetch data:', err);
-            setError(err.response?.data?.error || 'Failed to load users or roles');
-        } finally {
+            } catch (err) {
+            setError(err.response?.status === 403
+                ? 'Access denied: Insufficient permissions.'
+                : err.response?.data?.error || 'Failed to load roles or user data');
+            } finally {
             setLoading(false);
-        }
+            }
         };
         fetchData();
-    }, []);
+        }
+    }, [show, userId]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!selectedUserId || !selectedRole) {
-        setError('Please select a user and a role');
+    const handleRoleAction = async (action) => {
+        if (!selectedRole) {
+        setError('Please select a role');
         return;
         }
         try {
         setLoading(true);
-        const data = { userId: selectedUserId, role: selectedRole };
-        console.log('Assigning role with data:', data);
-        await assignRole(data);
-        setSuccess('Role assigned successfully');
+        const data = { userId, role: selectedRole };
+        if (action === 'assign') {
+            await assignRole(data);
+            setSuccess('Role assigned successfully');
+            setUserRoles([...userRoles, selectedRole]);
+        } else if (action === 'remove') {
+            await removeRole(data);
+            setSuccess('Role removed successfully');
+            setUserRoles(userRoles.filter(r => r !== selectedRole));
+        }
         setError('');
-        setSelectedUserId('');
         setSelectedRole('');
         } catch (err) {
-        console.error('Role assignment error:', err);
-        setError(err.response?.data?.error || 'Failed to assign role');
+        setError(err.response?.data?.error || `Failed to ${action} role`);
         setSuccess('');
         } finally {
         setLoading(false);
         }
     };
 
+    if (!show) return null;
+
     return (
-        <div className="container mt-5">
-        <h2>Assign Role</h2>
-        {error && <div className="alert alert-danger">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
-        {loading && <div className="alert alert-info">Loading...</div>}
-        <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-            <label className="form-label">Select User</label>
-            <select
-                className="form-select"
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                disabled={loading}
-            >
-                <option value="">Select a user</option>
-                {users.length > 0 ? (
-                users.map(user => (
-                    <option key={user._id} value={user._id}>
-                    {user.email} ({user.firstName} {user.lastName})
-                    </option>
-                ))
-                ) : (
-                <option value="" disabled>No users available</option>
-                )}
-            </select>
+        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1" role="dialog">
+        <div className="modal-dialog" role="document">
+            <div className="modal-content">
+            <div className="modal-header">
+                <h5 className="modal-title">Role Management for User ID: {userId}</h5>
+                <button type="button" className="btn-close" onClick={onClose} aria-label="Close"></button>
             </div>
-            <div className="mb-3">
-            <label className="form-label">Select Role</label>
-            <select
-                className="form-select"
+            <div className="modal-body">
+                {error && <div className="alert alert-danger">{error}</div>}
+                {success && <div className="alert alert-success">{success}</div>}
+                <h6>Current Roles:</h6>
+                <ul className="list-group mb-3">
+                {userRoles.map(role => (
+                    <li key={role} className="list-group-item d-flex justify-content-between align-items-center">
+                    {role}
+                    <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleRoleAction('remove')}
+                        disabled={loading}
+                    >
+                        {loading ? 'Removing...' : 'Remove'}
+                    </button>
+                    </li>
+                ))}
+                </ul>
+                <h6>Assign Role:</h6>
+                <select
+                className="form-select mb-3"
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
                 disabled={loading}
-            >
-                <option value="">Select a role</option>
-                {roles.length > 0 ? (
-                roles.map(role => (
+                >
+                <option value="">Select a role to assign</option>
+                {roles.map(role => (
                     <option key={role._id} value={role.name}>
                     {role.name}
                     </option>
-                ))
-                ) : (
-                <option value="" disabled>No roles available</option>
-                )}
-            </select>
+                ))}
+                </select>
+                <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => handleRoleAction('assign')}
+                disabled={loading || !selectedRole}
+                >
+                {loading ? 'Assigning...' : 'Assign Role'}
+                </button>
             </div>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Assigning...' : 'Assign Role'}
-            </button>
-        </form>
+            <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>Close</button>
+            </div>
+            </div>
+        </div>
         </div>
     );
     };

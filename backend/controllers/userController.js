@@ -77,7 +77,7 @@
         if (!id.match(/^[0-9a-fA-F]{24}$/)) {
         return res.status(400).json({ error: 'Invalid user ID' });
         }
-        const user = await User.findById(id).select('-password');
+        const user = await User.findById(id).select('-password').populate('roles');
         if (!user) {
         return res.status(404).json({ error: 'User not found' });
         }
@@ -90,7 +90,7 @@
 
     const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find().select('-password');
+        const users = await User.find().select('-password').populate('roles');
         res.status(200).json(users);
     } catch (error) {
         console.error('Error fetching users:', error);
@@ -114,11 +114,38 @@
         console.log('Role not found for name:', role);
         return res.status(404).json({ error: 'Role not found' });
         }
-        user.roles = [foundRole._id];
+        if (!user.roles.includes(foundRole._id)) {
+        user.roles.push(foundRole._id);
+        }
         await user.save();
         res.status(200).json({ message: 'Role assigned successfully', user });
     } catch (error) {
         console.error('AssignRole error:', error);
+        res.status(400).json({ error: error.message });
+    }
+    };
+
+    const removeRole = async (req, res) => {
+    try {
+        const { userId, role } = req.body;
+        console.log('Received removeRole request:', { userId, role });
+        if (!userId || !role) {
+        return res.status(400).json({ error: 'User ID and role are required' });
+        }
+        const user = await User.findById(userId);
+        if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+        }
+        const foundRole = await Role.findOne({ name: role });
+        if (!foundRole) {
+        console.log('Role not found for name:', role);
+        return res.status(404).json({ error: 'Role not found' });
+        }
+        user.roles = user.roles.filter(roleId => roleId.toString() !== foundRole._id.toString());
+        await user.save();
+        res.status(200).json({ message: 'Role removed successfully', user });
+    } catch (error) {
+        console.error('RemoveRole error:', error);
         res.status(400).json({ error: error.message });
     }
     };
@@ -149,4 +176,4 @@
     }
     };
 
-    module.exports = { createUser, updateUser, deleteUser, getUser, getAllUsers, assignRole, login };
+    module.exports = { createUser, updateUser, deleteUser, getUser, getAllUsers, assignRole, removeRole, login };

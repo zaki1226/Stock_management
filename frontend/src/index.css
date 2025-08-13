@@ -2,3 +2,32 @@
   background-color: #e9ecef; /* Slightly darker on hover */
   color: #0056b3; /* Darker blue on hover */
 }
+.sidebar {
+  width: 350px;
+  min-height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.content-area {
+  margin-left: 350px;
+}
+
+.nav-link.active {
+  background-color: #007bff !important;
+  color: white !important;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+  }
+  .content-area {
+    margin-left: 0;
+  }
+}

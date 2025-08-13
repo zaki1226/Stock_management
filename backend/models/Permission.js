@@ -1,8 +1,12 @@
-    const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
-    const permissionSchema = new mongoose.Schema({
-    name: { type: String, required: true, unique: true },
-    description: { type: String },
-    });
+// Check if model is already compiled to prevent OverwriteModelError
+const Permission = mongoose.models.Permission || mongoose.model('Permission', new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+}, { timestamps: true }));
 
-    module.exports = mongoose.model('Permission', permissionSchema);
+module.exports = Permission;

@@ -1,95 +1,69 @@
-    import React, { useState } from 'react';
-    import { Link } from 'react-router-dom';
-    import UserDeleteModal from './UserDeleteModal.jsx';
-    import UserEditModal from './UserEditModal.jsx';
-    import stock from '../assets/stoc.png'; 
+    import React, { useState, useEffect } from 'react';
+    import { Link, useLocation, useNavigate } from 'react-router-dom';
+    import stock from '../assets/stoc.png';
 
     const Navbar = () => {
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
+    const location = useLocation();
+    const [userRoles, setUserRoles] = useState([]);
+    const navigate = useNavigate();
+    const [isCollapsed, setIsCollapsed] = useState(localStorage.getItem('sidebarCollapsed') === 'true');
+
+    useEffect(() => {
+        const fetchUserRoles = () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const roles = Array.isArray(payload.roles)
+                ? payload.roles.map(role => role.toLowerCase()).filter(Boolean)
+                : [];
+            setUserRoles(roles);
+            } catch (err) {
+            setUserRoles([]);
+            }
+        } else {
+            setUserRoles([]);
+        }
+        };
+        fetchUserRoles();
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
-        window.location.href = '/';
+        localStorage.removeItem('sidebarCollapsed');
+        navigate('/');
     };
 
+    const isAdmin = userRoles.includes('admin');
+    const sidebarWidth = isCollapsed ? '60px' : '250px';
+    const contentMargin = isCollapsed ? '80px' : '260px';
+
     return (
-        <nav className="navbar navbar-expand-lg navbar-light bg-light">
-        <div className="container-fluid">
-            <Link className="navbar-brand me-3" to="/users">
-            <img src={stock} alt="Stock Management" style={{ height: '40px', width: 'auto' }} />
-            </Link>
-
-
-            <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span className="navbar-toggler-icon"></span>
+        <>
+        <div className="d-flex justify-content-end p-2 bg-dark text-white" style={{ zIndex: 1000 }}>
+            <button className="btn btn-secondary" onClick={() => {
+            const newCollapsed = !isCollapsed;
+            setIsCollapsed(newCollapsed);
+            localStorage.setItem('sidebarCollapsed', newCollapsed);
+            }}>
+            <i className={`fas ${isCollapsed ? 'fa-angle-double-right' : 'fa-angle-double-left'}`}></i>
             </button>
-            <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav max-auto" >
-
-
-                {localStorage.getItem('token') && (
-                <>
-                    <li className="nav-item">
-                    <Link
-                        className="nav-link border border-primary rounded px-2 py-1 bg-light text-primary me-2 nav-box"
-                        to="/users"
-                    >
-                        List All Users
-                    </Link>
-                    </li>
-                    <li className="nav-item">
-                    <Link
-                        className="nav-link border border-primary rounded px-2 py-1 bg-light text-primary me-2 nav-box"
-                        to="/users/create"
-                    >
-                        Create User
-                    </Link>
-                    </li>
-                    <li className="nav-item">
-                    <button
-                        className="nav-link btn btn-link border border-primary rounded px-2 py-1 bg-light text-primary me-2 nav-box"
-                        onClick={() => setShowEditModal(true)}
-                    >
-                        Edit User
-                    </button>
-                    </li>
-                    <li className="nav-item">
-                    <button
-                        className="nav-link btn btn-link border border-primary rounded px-2 py-1 bg-light text-primary me-2 nav-box"
-                        onClick={() => setShowDeleteModal(true)}
-                    >
-                        Delete User
-                    </button>
-                    </li>
-                    <li className="nav-item">
-                    <Link
-                        className="nav-link border border-primary rounded px-2 py-1 bg-light text-primary me-2 nav-box"
-                        to="/roles"
-                    >
-                        Assign Role
-                    </Link>
-                    </li>
-                </>
-                )}
-            </ul>
-            {localStorage.getItem('token') && (
-                <ul className="navbar-nav ms-auto">
-                <li className="nav-item">
-                    <button
-                    className="nav-link btn btn-link border border-primary rounded px-2 py-1 bg-light text-primary me-2 nav-box"
-                    onClick={handleLogout}
-                    >
-                    Logout
-                    </button>
-                </li>
-                </ul>
-            )}
-            </div>
         </div>
-        {showDeleteModal && <UserDeleteModal onClose={() => setShowDeleteModal(false)} />}
-        {showEditModal && <UserEditModal onClose={() => setShowEditModal(false)} />}
-        </nav>
+        <div className={`d-flex flex-column vh-100 bg-dark text-white p-2`} style={{ width: sidebarWidth, position: 'fixed', transition: 'width 0.3s', overflow: 'hidden' }}>
+            <div className="mb-3">
+            <img src={stock} alt="Logo" className="mb-2" style={{ height: '40px', display: isCollapsed ? 'none' : 'block' }} />
+            {!isCollapsed && <h2 className="h5 mb-0">User Management</h2>}
+            </div>
+            {localStorage.getItem('token') && (
+            <nav className="flex-grow-1">
+                <Link to="/dashboard" className={`d-block py-2 px-3 mb-2 rounded text-decoration-none ${location.pathname === '/dashboard' ? 'bg-secondary' : 'text-white'}`} style={{ display: isCollapsed ? 'none' : 'block' }}>Dashboard</Link>
+            </nav>
+            )}
+            {localStorage.getItem('token') && (
+            <button onClick={handleLogout} className="btn btn-danger w-100 mt-1" style={{ padding: '6px', fontSize: '14px' }}>Logout</button>
+            )}
+        </div>
+        </>
     );
     };
 
